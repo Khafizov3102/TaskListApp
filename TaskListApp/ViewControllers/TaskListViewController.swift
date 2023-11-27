@@ -54,12 +54,12 @@ private extension TaskListViewController {
 		navigationController?.navigationBar.tintColor = .white
 	}
 
-    func showAlert(with title: String, and message: String, index: Int? = nil) {
+    func showAlert(with title: String, and message: String, indexPath: IndexPath? = nil) {
 		let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
 		
-        let saveAction = UIAlertAction(title: (index == nil) ? "Save Task" : "Updata Task", style: .default) { [unowned self] _ in
+        let saveAction = UIAlertAction(title: (indexPath == nil) ? "Save Task" : "Updata Task", style: .default) { [unowned self] _ in
 			guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
-            (index == nil) ? save(task) : updata(title: task, index: index ?? 0)
+            (indexPath == nil) ? save(task) : updata(title: task, indexPath: indexPath ?? IndexPath(row: 0, section: 0))
 		}
 		
 		let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
@@ -67,10 +67,10 @@ private extension TaskListViewController {
 		alert.addAction(saveAction)
 		alert.addAction(cancelAction)
 		alert.addTextField { [unowned self] textField in
-            if (index == nil) {
+            if (indexPath == nil) {
                 textField.placeholder = "NewTask"
             } else {
-                textField.text = taskList[index ?? 0].title
+                textField.text = taskList[indexPath?.row ?? 0].title
             }
 		}
 		present(alert, animated: true)
@@ -86,12 +86,18 @@ private extension TaskListViewController {
 		tableView.insertRows(at: [indexPath], with: .automatic)
 	}
     
-    func updata(title: String, index: Int) {
-        storageManager.updata(title: title, task: taskList[index]) { [unowned self] task in
+    func updata(title: String, indexPath: IndexPath) {
+        storageManager.updata(title: title, task: taskList[indexPath.row]) { [unowned self] task in
             task.title = title
-            taskList[index] = task
+            taskList[indexPath.row] = task
         }
-        tableView.reloadData()
+        tableView.reloadRows(at: [indexPath], with: .fade)
+    }
+    
+    func delete(indexPath: IndexPath) {
+        taskList.remove(at: indexPath.row - 1)
+        tableView.deleteRows(at: [indexPath], with: .fade)
+        storageManager.delete(task: taskList[indexPath.row - 1])
     }
     
     func fetchData() {
@@ -119,17 +125,14 @@ extension TaskListViewController {
     
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            
-            taskList.remove(at: indexPath.row - 1)
-            tableView.deleteRows(at: [indexPath], with: .fade)
-            storageManager.delete(task: taskList[indexPath.row - 1])
+            delete(indexPath: indexPath)
         }
     }
 }
 
 extension TaskListViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        showAlert(with: taskList[indexPath.row].title ?? "", and: "Write new value", index: indexPath.row)
+        showAlert(with: taskList[indexPath.row].title ?? "", and: "Write new value", indexPath: indexPath)
         tableView.deselectRow(at: indexPath, animated: true)
     }
 }
